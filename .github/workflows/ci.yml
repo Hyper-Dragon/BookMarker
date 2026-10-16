@@ -1,0 +1,115 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Nothing here writes to the repository. The release workflow grants more, per job.
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  # The engine pin, so CI builds state the same identity as a release build.
+  MARKER_VERSION: "1.10.2"
+
+jobs:
+  # ── gate ────────────────────────────────────────────────────────────────────
+  # Fast, cached, no network beyond package restore. This is the job a contributor
+  # sees fail first, and it is the one that must stay green.
+  gate:
+    name: format, build, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore BookMarker.slnx
+
+      - name: Format
+        run: dotnet format BookMarker.slnx --verify-no-changes --no-restore
+
+      # A warning in our own code fails the build. Formatting and warnings are gates here,
+      # not habits.
+      - name: Build
+        run: dotnet build BookMarker.slnx -c Release -warnaserror --no-restore -p:MarkerVersion=${{ env.MARKER_VERSION }}
+
+      - name: Test
+        run: dotnet test BookMarker.slnx -c Release --no-build
+
+  # ── container ───────────────────────────────────────────────────────────────
+  # Build success is not "it runs". This job builds the artifact that actually ships and
+  # boots it, because it is the only one that can catch a default that kills startup, a
+  # missing runtime dependency, or a health check that returns 200 for the wrong reason.
+  container:
+    name: build image and boot it
+    runs-on: ubuntu-latest
+    # Dependabot PRs get the gate and not a 7 GB image build: a dependency bump cannot change
+    # the image in a way the gate would miss, and this is the expensive job.
+    if: github.event_name != 'pull_request' || github.actor != 'dependabot[bot]'
+    steps:
+      - uses: actions/checkout@v7
+
+      # The CUDA base is 3.4 GB compressed and the built image is ~7 GB, on a runner with
+      # ~14 GB free. Reclaim the toolchains this job does not use — plain shell rather than a
+      # third-party action, so there is one less thing to trust or to break.
+      - name: Free disk space
+        run: |
+          set -euo pipefail
+          df -h / | tail -1
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet/sdk /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          sudo swapoff -a && sudo rm -f /swapfile
+          docker image prune -af || true
+          df -h / | tail -1
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: bookmarker:ci
+          build-args: |
+            MARKER_VERSION=${{ env.MARKER_VERSION }}
+            BOOKMARKER_VERSION=${{ github.sha }}
+          cache-from: type=gha,scope=linux-amd64
+          cache-to: type=gha,mode=max,scope=linux-amd64
+
+      # Start it with NO environment variables at all: the image's own defaults are part of
+      # the artifact. Then require a marker from the response BODY, not merely a 200 — a 200
+      # from something else already holding the port would otherwise pass.
+      - name: Boot with defaults and probe
+        run: |
+          set -euo pipefail
+          docker run -d --name bookmarker-ci -p 127.0.0.1:8080:8080 bookmarker:ci
+
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/health > /tmp/health.json; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              echo "health endpoint never answered" >&2
+              docker logs bookmarker-ci >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          cat /tmp/health.json
+          grep -q '"status":"healthy"' /tmp/health.json
+          # The artifact must say which upstream engine it packages, not just trust the docs.
+          grep -q "\"engine\":\"marker-pdf ${{ env.MARKER_VERSION }}\"" /tmp/health.json
+
+          docker exec bookmarker-ci bash /usr/local/bin/healthcheck.sh
+          docker logs bookmarker-ci
+          docker rm -f bookmarker-ci
+
+  # The conversion path cannot be exercised here: it needs a GPU, several gigabytes of model
+  # weights and a real PDF. That is a manual acceptance run (./build-and-run.sh,
+  # ./scripts/acceptance.sh) and it is stated as such in the README.

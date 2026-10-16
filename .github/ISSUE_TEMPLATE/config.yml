@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: The converted markdown looks wrong
+    url: https://github.com/datalab-to/marker/issues
+    about: Headings, reading order, OCR, tables and equations are marker's behaviour, not this service's. See UPSTREAM.md.
+  - name: How do I report a security problem?
+    url: https://github.com/Hyper-Dragon/BookMarker/blob/main/SECURITY.md
+    about: Private reporting, scope, and the two things that are by design rather than bugs.

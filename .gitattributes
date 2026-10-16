@@ -1,0 +1,5 @@
+# Normalize to LF in the repo; this project's tooling runs in bash (WSL/Linux containers)
+* text=auto eol=lf
+*.sh text eol=lf
+*.pdf binary
+*.tar.gz binary

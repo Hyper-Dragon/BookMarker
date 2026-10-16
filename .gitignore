@@ -1,0 +1,22 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+
+# IDE
+.vs/
+*.user
+*.suo
+
+# Local scratch (never committed)
+ai_scratchspace/
+tmp/
+
+# Local deployment env + logs
+.env
+*.log
+
+# The upstream engine is fetched and checksum-verified at build time (see UPSTREAM.md),
+# never committed: this repository is packaging, not a fork.
+vendor/
