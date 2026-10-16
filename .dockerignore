@@ -1,0 +1,19 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/ai_scratchspace
+**/tmp
+**/*.user
+.env
+*.log
+
+# not needed inside the image
+tests/
+README.md
+SPEC.md
+docker-compose.yml
+.env.example
+build-and-run.sh
+book.sh

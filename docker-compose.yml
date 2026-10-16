@@ -1,0 +1,57 @@
+name: bookmarker
+
+services:
+  bookmarker:
+    build:
+      context: .
+      args:
+        BOOKMARKER_VERSION: ${BOOKMARKER_VERSION:-dev}
+    image: bookmarker:${BOOKMARKER_VERSION:-latest}
+    container_name: bookmarker
+    ports:
+      - "${BOOKMARKER_PORT:-8080}:8080"
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-Information}
+      - WORKERS=${WORKERS:-1}
+      - MAX_TIME_MS=${MAX_TIME_MS:-3600000}
+      - MAX_UPLOAD_BYTES=${MAX_UPLOAD_BYTES:-536870912}
+      - BUSY_RETRY_AFTER_SECONDS=${BUSY_RETRY_AFTER_SECONDS:-15}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LLM_TIMEOUT_SECONDS=${LLM_TIMEOUT_SECONDS:-600}
+      - LLM_MAX_RETRIES=${LLM_MAX_RETRIES:-4}
+      - LLM_RETRY_WAIT_SECONDS=${LLM_RETRY_WAIT_SECONDS:-5}
+      - HF_HUB_OFFLINE=${HF_HUB_OFFLINE:-0}
+    volumes:
+      # Persistent model caches — keep them warm across restarts (first run downloads models)
+      - bookmarker-hf:/root/.cache/huggingface
+      - bookmarker-datalab:/root/.cache/datalab
+    shm_size: "2g"
+    # memswap_limit == mem_limit on purpose: never let the container borrow host swap
+    mem_limit: ${BOOKMARKER_MEMORY:-9g}
+    memswap_limit: ${BOOKMARKER_MEMORY:-9g}
+    oom_score_adj: 1000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bash", "/usr/local/bin/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+volumes:
+  bookmarker-hf:
+  bookmarker-datalab:
