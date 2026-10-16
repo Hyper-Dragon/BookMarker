@@ -1,0 +1,29 @@
+<Project>
+
+  <!--
+    One version, one file.
+
+    version.txt is the only place a release version is written down. This file feeds it to
+    the compiler (assembly informational version); the Dockerfile, the compose file and the
+    release workflow read the same file or take the value from the tag. Nothing else may
+    hard-code a version — a version that appears in four places appears in three wrong ones.
+
+    The *engine* version (marker-pdf) is a different number and lives with the pin, in the
+    Dockerfile and UPSTREAM.md.
+  -->
+  <PropertyGroup>
+    <VersionFile>$(MSBuildThisFileDirectory)version.txt</VersionFile>
+    <Version Condition="'$(Version)' == '' and Exists('$(VersionFile)')">$([System.IO.File]::ReadAllText('$(VersionFile)').Trim())</Version>
+    <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <!--
+    The image build passes -p:MarkerVersion=<pinned marker-pdf version>. It is compiled into
+    the assembly and surfaced at /health and /api/status, so a running instance states which
+    upstream engine it packages. Absent in a plain `dotnet build`. See UPSTREAM.md.
+  -->
+  <ItemGroup Condition="'$(MarkerVersion)' != ''">
+    <AssemblyMetadata Include="MarkerVersion" Value="$(MarkerVersion)" />
+  </ItemGroup>
+
+</Project>

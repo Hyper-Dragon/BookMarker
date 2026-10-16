@@ -1,0 +1,100 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R /F2 10 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 1326 >>
+stream
+BT /F2 22 Tf 50 780 Td (The BookMarker Test Document) Tj ET
+BT /F1 11 Tf 50 756 Td (A small deterministic PDF used by the acceptance suite.) Tj ET
+BT /F1 10.5 Tf 50 710 Td (BookMarker wraps the marker engine behind a small HTTP service that converts one PDF at) Tj ET
+BT /F1 10.5 Tf 50 695 Td (a time. This sample document gives the conversion pipeline plain text, a heading, and a) Tj ET
+BT /F1 10.5 Tf 50 680 Td (simple table to work with. It is intentionally boring: the point is that the output is) Tj ET
+BT /F1 10.5 Tf 50 665 Td (reproducible, so a direct CLI run and a service run can be compared line by line.) Tj ET
+BT /F1 10.5 Tf 50 642 Td (Each acceptance run converts this file through the service, converts the same file) Tj ET
+BT /F1 10.5 Tf 50 627 Td (through the engine CLI with identical flags, and diffs the two markdown results.) Tj ET
+BT /F1 10.5 Tf 50 612 Td (Differences should be limited to benign engine nondeterminism.) Tj ET
+BT /F2 12 Tf 50 589 Td (How to read this document) Tj ET
+BT /F1 10.5 Tf 50 567 Td (The first page carries running text. The second page carries a small bordered table. The) Tj ET
+BT /F1 10.5 Tf 50 552 Td (third page carries a bullet list. Nothing here requires an image, so the sample stays) Tj ET
+BT /F1 10.5 Tf 50 537 Td (small enough to travel inside the repository.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R /F2 10 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 1093 >>
+stream
+BT /F2 16 Tf 50 780 Td (Chapter 1 - Tables and Figures) Tj ET
+BT /F1 10.5 Tf 50 745 Td (This chapter exists so the layout model has a simple bordered table to find, and so an) Tj ET
+BT /F1 10.5 Tf 50 730 Td (LLM-enabled run has something the LLM path can annotate. The table below lists three) Tj ET
+BT /F1 10.5 Tf 50 715 Td (fictional measurements with short notes.) Tj ET
+0.9 w 50 686 m 480 686 l S
+0.9 w 50 664 m 480 664 l S
+0.9 w 50 642 m 480 642 l S
+0.9 w 50 620 m 480 620 l S
+0.9 w 50 598 m 480 598 l S
+0.9 w 50 686 m 50 598 l S
+0.9 w 170 686 m 170 598 l S
+0.9 w 250 686 m 250 598 l S
+0.9 w 480 686 m 480 598 l S
+BT /F2 10 Tf 55 671 Td (Item) Tj ET
+BT /F2 10 Tf 175 671 Td (Value) Tj ET
+BT /F2 10 Tf 255 671 Td (Notes) Tj ET
+BT /F1 10 Tf 55 649 Td (alpha) Tj ET
+BT /F1 10 Tf 175 649 Td (12) Tj ET
+BT /F1 10 Tf 255 649 Td (first sample row) Tj ET
+BT /F1 10 Tf 55 627 Td (beta) Tj ET
+BT /F1 10 Tf 175 627 Td (34) Tj ET
+BT /F1 10 Tf 255 627 Td (second sample row) Tj ET
+BT /F1 10 Tf 55 605 Td (gamma) Tj ET
+BT /F1 10 Tf 175 605 Td (56) Tj ET
+BT /F1 10 Tf 255 605 Td (third sample row) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 9 0 R /F2 10 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 504 >>
+stream
+BT /F2 16 Tf 50 780 Td (Chapter 2 - Lists) Tj ET
+BT /F1 10.5 Tf 50 745 Td (- The service converts exactly one document at a time.) Tj ET
+BT /F1 10.5 Tf 50 725 Td (- A busy service refuses new work instead of queueing it.) Tj ET
+BT /F1 10.5 Tf 50 705 Td (- Uploaded files are deleted as soon as their job ends.) Tj ET
+BT /F1 10.5 Tf 50 685 Td (- An LLM-enabled run that cannot reach the LLM either fails or re-runs without it.) Tj ET
+BT /F1 10.5 Tf 50 160 Td (End of the BookMarker sample document.) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+10 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000133 00000 n 
+0000000270 00000 n 
+0000001648 00000 n 
+0000001785 00000 n 
+0000002930 00000 n 
+0000003067 00000 n 
+0000003622 00000 n 
+0000003692 00000 n 
+trailer
+<< /Size 11 /Root 1 0 R >>
+startxref
+3768
+%%EOF
