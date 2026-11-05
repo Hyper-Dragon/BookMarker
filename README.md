@@ -187,12 +187,17 @@ BookMarker/
   largest document you expect; compose defaults to `9g`. For very large books, split with
   `page_range` and join the markdown afterwards.
 - **The image is about 10.7 GB uncompressed** (`docker images`), most of it the CUDA base and
-  the model weights. It's a one-time pull, and the weights only change when the engine pin does.
+  the model weights. It's a one-time pull, and the weights only change when the engine or surya
+  pin does.
 - **Model artifacts are inside the image**, at `/root/.cache/datalab/models`. They're
   downloaded at build time from the checkpoint paths the installed surya release names, and the
   build then loads every model with the network off to prove the set is complete. There is no
   cache volume to seed and no first run that can fail on a download. Newer weights mean a new
   image.
+- **The artifacts are checked, not just downloaded.** Their hashes are recorded in
+  `docker/model-artifacts.lock`, and the build stops if the bytes at those paths ever change.
+  The weights aren't in this repository — the largest file is 1.35 GB and GitHub blocks anything
+  over 100 MiB — so they're named by hash instead. `UPSTREAM.md` has the detail.
 - **`shm_size: 2g`** isn't optional. Docker's 64 MB default can deadlock marker's worker, and
   changing it means recreating the container, not restarting it.
 - **Memory and swap are capped at the same value**, so the container can't borrow host swap. A
@@ -239,4 +244,6 @@ Same licence as marker, for the obvious reason: the image ships marker, so it wa
 whatever I put at the top of this file. Datalab also sell marker commercially — that's between you
 and them, and this project can't grant anything under it.
 
-Model weights download on first run from Hugging Face and carry their own licences.
+The model weights are surya's, fetched from `models.datalab.to` when the image is built and
+covered by surya's licence. See [NOTICE](NOTICE) for the full list of what's in the image and
+where each part comes from.
