@@ -55,6 +55,7 @@ app.MapGet("/health", (ConversionCoordinator coordinator) => Results.Ok(new
     timestamp = DateTimeOffset.UtcNow,
     service = BookMarkerInfo.Name,
     version = BookMarkerInfo.Version,
+    engine = BookMarkerInfo.Engine,
     busy = coordinator.IsBusy,
     concurrency = new { max = BookMarkerOptions.Concurrency, available = coordinator.IsBusy ? 0 : 1 },
 }));
@@ -72,6 +73,7 @@ app.MapGet("/api/status", (JobRegistry registry) =>
     {
         service = BookMarkerInfo.Name,
         version = BookMarkerInfo.Version,
+        engine = BookMarkerInfo.Engine,
         description = BookMarkerInfo.Description,
         state = current is null ? "free" : "busy",
         startedAt = registry.StartedAt,
@@ -384,4 +386,9 @@ static string SanitizeFileName(string? name)
     }
 
     return cleaned.Length > 120 ? cleaned[..120] : cleaned;
+}
+
+/// <summary>Exposed so the test host can start the real application pipeline.</summary>
+public partial class Program
+{
 }

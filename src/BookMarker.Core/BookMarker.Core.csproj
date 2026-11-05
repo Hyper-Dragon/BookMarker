@@ -12,4 +12,9 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Page-range parsing is a pure function worth testing directly. -->
+    <InternalsVisibleTo Include="BookMarker.Tests" />
+  </ItemGroup>
+
 </Project>

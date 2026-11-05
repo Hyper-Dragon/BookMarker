@@ -13,7 +13,16 @@
 tests/
 README.md
 SPEC.md
+UPSTREAM.md
+CHANGELOG.md
+SECURITY.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+.github/
 docker-compose.yml
 .env.example
 build-and-run.sh
 book.sh
+
+# Upstream engine source is fetched and verified inside the build, not copied in.
+vendor/

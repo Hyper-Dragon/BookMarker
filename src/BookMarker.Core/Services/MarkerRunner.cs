@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace BookMarker.Core.Services;
 
 /// <summary>
-/// Runs the vendored marker CLI (folder mode - one PDF per job folder) and translates the
+/// Runs the pinned marker CLI (folder mode - one PDF per job folder) and translates the
 /// process output into a <see cref="ConvertOutcome"/>. Preserves the proven invocation:
 /// <code>
 /// marker &lt;in-folder&gt; --output_dir &lt;out&gt; --workers N --disable_multiprocessing
@@ -65,53 +65,53 @@ public sealed partial class MarkerRunner
                     ["llm_unavailable: request asked for llmonly but no LLM backend is configured (OPENAI_BASE_URL / OPENAI_MODEL)"]);
 
             case LlmMode.LlmOnly:
-            {
-                var attempt = await RunAttemptAsync(job, useLlm: true, total, cancellationToken);
-                if (attempt.Success && !attempt.LlmDegraded)
                 {
-                    return attempt;
-                }
+                    var attempt = await RunAttemptAsync(job, useLlm: true, total, cancellationToken);
+                    if (attempt.Success && !attempt.LlmDegraded)
+                    {
+                        return attempt;
+                    }
 
-                var reason = attempt.LlmDegraded
-                    ? "llm_unavailable: the LLM path failed during the run and llmonly never degrades silently"
-                    : attempt.Errors?.FirstOrDefault() ?? "conversion failed";
-                return Fail(job, total, [reason], attempt.LogTail);
-            }
+                    var reason = attempt.LlmDegraded
+                        ? "llm_unavailable: the LLM path failed during the run and llmonly never degrades silently"
+                        : attempt.Errors?.FirstOrDefault() ?? "conversion failed";
+                    return Fail(job, total, [reason], attempt.LogTail);
+                }
 
             case LlmMode.LlmFallback when !_options.LlmConfigured:
-            {
-                var attempt = await RunAttemptAsync(job, useLlm: false, total, cancellationToken);
-                return attempt with
                 {
-                    LlmFellBack = true,
-                    LlmNote = "llm not configured; ran without llm",
-                };
-            }
-
-            case LlmMode.LlmFallback:
-            {
-                var attempt = await RunAttemptAsync(job, useLlm: true, total, cancellationToken);
-                if (attempt.Success && !attempt.LlmDegraded)
-                {
-                    return attempt;
+                    var attempt = await RunAttemptAsync(job, useLlm: false, total, cancellationToken);
+                    return attempt with
+                    {
+                        LlmFellBack = true,
+                        LlmNote = "llm not configured; ran without llm",
+                    };
                 }
 
-                var why = attempt.LlmDegraded
-                    ? "llm path degraded during the llm attempt"
-                    : "llm attempt failed: " + string.Join("; ", attempt.Errors ?? []);
-                _logger.LogWarning("[{TraceId}] llmfallback engaged ({Why}); re-running without llm", job.TraceId, why);
-                _registry.Update(job, j => j.Phase = "fallback: no-llm re-run");
-                DeleteOutput(job);
-
-                var fallback = await RunAttemptAsync(job, useLlm: false, total, cancellationToken);
-                return fallback with
+            case LlmMode.LlmFallback:
                 {
-                    LlmFellBack = fallback.Success,
-                    LlmNote = fallback.Success
-                        ? $"{why}; result produced without llm"
-                        : $"{why}; fallback run also failed",
-                };
-            }
+                    var attempt = await RunAttemptAsync(job, useLlm: true, total, cancellationToken);
+                    if (attempt.Success && !attempt.LlmDegraded)
+                    {
+                        return attempt;
+                    }
+
+                    var why = attempt.LlmDegraded
+                        ? "llm path degraded during the llm attempt"
+                        : "llm attempt failed: " + string.Join("; ", attempt.Errors ?? []);
+                    _logger.LogWarning("[{TraceId}] llmfallback engaged ({Why}); re-running without llm", job.TraceId, why);
+                    _registry.Update(job, j => j.Phase = "fallback: no-llm re-run");
+                    DeleteOutput(job);
+
+                    var fallback = await RunAttemptAsync(job, useLlm: false, total, cancellationToken);
+                    return fallback with
+                    {
+                        LlmFellBack = fallback.Success,
+                        LlmNote = fallback.Success
+                            ? $"{why}; result produced without llm"
+                            : $"{why}; fallback run also failed",
+                    };
+                }
 
             default:
                 return Fail(job, total, ["unsupported llm mode"]);

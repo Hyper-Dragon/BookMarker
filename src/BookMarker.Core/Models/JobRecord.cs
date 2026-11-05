@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json.Serialization;
 
 namespace BookMarker.Core.Models;
@@ -61,6 +62,39 @@ public sealed class JobRecord
 public static class BookMarkerInfo
 {
     public const string Name = "BookMarker";
-    public const string Version = "1.0.0";
-    public const string Description = "Standalone marker-pdf wrapper: a concurrency-1 HTTP service that converts PDFs to Markdown.";
+
+    public const string Description =
+        "Unofficial container and HTTP service for marker-pdf (Datalab): a concurrency-1 PDF to Markdown service.";
+
+    /// <summary>
+    /// Service version, read from the assembly's informational version: version.txt plus the
+    /// commit hash when the build supplies SourceRevisionId. No other file records it.
+    /// </summary>
+    public static string Version { get; } = ReadInformationalVersion();
+
+    /// <summary>
+    /// Version of the upstream engine this build packages, stamped by the image build
+    /// (-p:MarkerVersion). BookMarker adds no conversion logic of its own, so the running
+    /// service says which marker-pdf it is packaging rather than leaving that to the docs.
+    /// </summary>
+    public static string EngineVersion { get; } = ReadMetadata("MarkerVersion") ?? "unknown";
+
+    /// <summary>Human-readable engine identity, e.g. "marker-pdf 1.10.2".</summary>
+    public static string Engine { get; } = EngineVersion == "unknown"
+        ? "marker-pdf (version not stamped)"
+        : $"marker-pdf {EngineVersion}";
+
+    private static Assembly InfoAssembly => typeof(BookMarkerInfo).Assembly;
+
+    private static string ReadInformationalVersion()
+    {
+        var attribute = InfoAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        return string.IsNullOrWhiteSpace(attribute?.InformationalVersion)
+            ? InfoAssembly.GetName().Version?.ToString(3) ?? "unknown"
+            : attribute.InformationalVersion;
+    }
+
+    private static string? ReadMetadata(string key) =>
+        InfoAssembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => attribute.Key == key)?.Value;
 }

@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/BookMarker.Tests/BookMarker.Tests.csproj" />
+    <Project Path="tests/MarkerStub/MarkerStub.csproj" />
+  </Folder>
   <Project Path="src/BookMarker.Core/BookMarker.Core.csproj" />
   <Project Path="src/BookMarker.Web/BookMarker.Web.csproj" />
 </Solution>

@@ -1,0 +1,50 @@
+# Keep dependencies current without a manual sweep.
+#
+# A major version is ignored only with a reason written here: a silent ignore reads as
+# neglect, and a blind bump of anything below reads as a broken release.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      patch-and-minor:
+        applies-to: version-updates
+        update-types:
+          - patch
+          - minor
+    ignore:
+      # The projects target net10.0. A new major of the ASP.NET packages expects a newer
+      # shared framework, so it cannot be merged on its own: the TFM, the image's runtime
+      # and these packages move together as a migration, with the container job green.
+      - dependency-name: Microsoft.AspNetCore.OpenApi
+        update-types: ["version-update:semver-major"]
+      - dependency-name: Microsoft.AspNetCore.Mvc.Testing
+        update-types: ["version-update:semver-major"]
+      # xunit is on 2.x. A 3.x bump changes the runner and the assertion API across the
+      # whole suite; that is a deliberate change, not a weekly PR.
+      - dependency-name: xunit
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    ignore:
+      # The CUDA base carries the torch/cuDNN versions the pinned marker release was
+      # validated against. Moving it is a branch, a full image build and an acceptance run
+      # on a real GPU — not a Dependabot PR.
+      - dependency-name: pytorch/pytorch
+      # The .NET runtime in the image is installed from the same channel as the build SDK;
+      # a major bump is the migration described above.
+      - dependency-name: mcr.microsoft.com/dotnet/sdk
+        update-types: ["version-update:semver-major"]

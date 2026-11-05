@@ -2,11 +2,10 @@ name: bookmarker
 
 services:
   bookmarker:
-    build:
-      context: .
-      args:
-        BOOKMARKER_VERSION: ${BOOKMARKER_VERSION:-dev}
-    image: bookmarker:${BOOKMARKER_VERSION:-latest}
+    # The published image (linux/amd64, NVIDIA GPU). To run a build of this tree instead:
+    #   docker build -t bookmarker:latest .
+    #   BOOKMARKER_IMAGE=bookmarker:latest docker compose up -d
+    image: ${BOOKMARKER_IMAGE:-ghcr.io/hyper-dragon/bookmarker:latest}
     container_name: bookmarker
     ports:
       - "${BOOKMARKER_PORT:-8080}:8080"

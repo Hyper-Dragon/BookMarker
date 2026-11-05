@@ -3,7 +3,7 @@
 ## Purpose
 
 BookMarker is a capacity-bound, synchronous HTTP service that converts a PDF to
-Markdown using the vendored marker engine. It is designed for **honest backpressure**,
+Markdown using the pinned marker engine (see `UPSTREAM.md`). It is designed for **honest backpressure**,
 **predictable memory behaviour on GPU hosts**, and **zero data retention**.
 
 It is not a queue, scheduler, or batch processor. One conversion at a time; everything
@@ -28,8 +28,9 @@ else is refused, explicitly and immediately.
 ## Technology stack
 
 - Language/runtime: C# / .NET 10 (ASP.NET Core Minimal APIs)
-- Engine: vendored `marker-pdf` (see `vendor/marker-pdf/VENDOR.md`), installed from the
-  vendored source tree into the container
+- Engine: `marker-pdf` **1.10.2**, unmodified, fetched from its pinned release artifact
+  and verified by sha256 at build time (see `UPSTREAM.md`). BookMarker adds no
+  conversion logic of its own.
 - GPU: CUDA 12.6 (PyTorch 2.7.1 base image); no CPU mode
 - LLM: any OpenAI-compatible endpoint, consumed through the shim
   `llm_shim/marker_openai_service.py` (`OpenAICompatibleService`)
@@ -47,7 +48,8 @@ Always `200`, including while a conversion is running.
   "status": "healthy",
   "timestamp": "2026-10-16T16:00:00Z",
   "service": "BookMarker",
-  "version": "1.0.0",
+  "version": "0.1.0",
+  "engine": "marker-pdf 1.10.2",
   "busy": false,
   "concurrency": { "max": 1, "available": 1 }
 }
@@ -168,4 +170,8 @@ Notes: `--debug` is never used (marker 1.10.2 crashes at the end of every PDF wi
 
 ## Versioning
 
-This document describes v1.0 of the BookMarker interface.
+This document describes **v1.0 of the BookMarker interface** — the contract above.
+
+The software's own release version is recorded in `version.txt` and reported by `GET /health`,
+together with the version of the upstream engine it packages. The two numbers are independent:
+the interface version changes only when this file changes.

@@ -16,3 +16,7 @@ tmp/
 # Local deployment env + logs
 .env
 *.log
+
+# The upstream engine is fetched and checksum-verified at build time (see UPSTREAM.md),
+# never committed: this repository is packaging, not a fork.
+vendor/

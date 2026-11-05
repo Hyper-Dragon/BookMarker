@@ -15,7 +15,7 @@ echo "[$(date)] BookMarker build-and-run — log: $LOG"
 
   if [ "${1:-}" != "--no-build" ]; then
     echo "[$(date)] docker build (this pulls the CUDA base image on first run)..."
-    docker build -t "$NAME:latest" .
+    docker build -t "$NAME:latest" --build-arg BOOKMARKER_VERSION="$(cat "$REPO_DIR/version.txt")" .
   fi
 
   echo "[$(date)] recreating container..."
@@ -33,10 +33,10 @@ echo "[$(date)] BookMarker build-and-run — log: $LOG"
     --health-start-period 20s \
     --memory 6g \
     --memory-swap 6g \
-    -p 0.0.0.0:8888:8080 \
+    -p 127.0.0.1:8888:8080 \
     -e LOG_LEVEL=Information \
     -e WORKERS=1 \
-    -e MAX_TIME_MS=3600000 \
+    -e MAX_TIME_MS="${MAX_TIME_MS:-3600000}" \
     -e MAX_UPLOAD_BYTES=536870912 \
     -e BUSY_RETRY_AFTER_SECONDS=15 \
     -e OPENAI_BASE_URL="${OPENAI_BASE_URL:-}" \

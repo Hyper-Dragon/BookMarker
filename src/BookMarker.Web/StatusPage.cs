@@ -94,7 +94,8 @@ footer { color: #5d6478; font-size: 0.75rem; margin-top: 1.2rem; }
   }
 
   function render(s) {
-    document.getElementById("version").textContent = (s.service ?? "BookMarker") + " " + (s.version ?? "");
+    document.getElementById("version").textContent =
+      (s.service ?? "BookMarker") + " " + (s.version ?? "") + (s.engine ? " · " + s.engine : "");
 
     const state = document.getElementById("state");
     const busy = s.state === "busy";
