@@ -54,6 +54,10 @@ pypdfium2==5.10.1
 marker 1.10.2 asks for `pdftext ~0.6.3`. The override fixes an infinite link-extraction hang on
 some PDFs. It's outside what upstream declares and tests, and they don't have to care about it.
 
+It replaces surya's own pin too. surya-ocr 0.17.1 declares `pypdfium2==4.30.0`, so 5.10.1 is
+installed over that as well — which also means the two can't be requested in one `pip` command:
+pip would call it unsatisfiable and refuse. The override is a second, later step on purpose.
+
 So if you report a conversion bug upstream, mention it:
 
 > BookMarker 1.10.2 container; marker-pdf 1.10.2 unmodified; `pdftext` 0.7.1 and `pypdfium2` 5.10.1
