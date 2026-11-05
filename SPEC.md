@@ -167,8 +167,9 @@ Notes: `--debug` is never used (marker 1.10.2 crashes at the end of every PDF wi
   Changing shm requires a container recreate, not a restart.
 - **`memswap_limit == mem_limit`**: the container can never borrow host swap; an OOM
   kills only this container, and `restart: unless-stopped` recovers it.
-- **Model caches are persistent volumes** (`/root/.cache/huggingface`,
-  `/root/.cache/datalab`). First run downloads; afterwards set `HF_HUB_OFFLINE=1`.
+- **Model artifacts ship in the image**, at `/root/.cache/datalab/models`. They're fetched at
+  build time, and the build loads every model with the network off before the image is
+  published, so a conversion never downloads anything.
 - A `kill -9` of the service process is recovered by the restart policy; conversions are
   synchronous and stateless across restarts.
 

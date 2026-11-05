@@ -9,6 +9,20 @@ not released until it has a section here.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-05
+
+### Changed
+
+- **The model artifacts are baked into the image.** They're fetched at build time from the
+  checkpoint paths the installed surya release names and cached at
+  `/root/.cache/datalab/models`, so an unattended run does no network I/O for its models and
+  two runs of the same image cannot drift. The build fails if any artifact is missing: after
+  preloading, every model is loaded again with the network off (`RUN --network=none`).
+- The cache volumes are gone from the example compose file. Mounting an empty volume over
+  the cache path would have hidden the baked artifacts.
+- `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` are set in the image, so anything that still
+  reaches for the internet fails loudly instead of downloading.
+
 ## [0.1.1] - 2026-11-05
 
 ### Added

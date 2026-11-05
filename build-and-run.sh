@@ -43,8 +43,6 @@ echo "[$(date)] BookMarker build-and-run — log: $LOG"
     -e OPENAI_MODEL="${OPENAI_MODEL:-}" \
     -e OPENAI_API_KEY="${OPENAI_API_KEY:-}" \
     -e HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-0}" \
-    -v bookmarker-test-hf:/root/.cache/huggingface \
-    -v bookmarker-test-datalab:/root/.cache/datalab \
     "$NAME:latest"
 
   echo "[$(date)] waiting for healthcheck..."

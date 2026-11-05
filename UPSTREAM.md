@@ -73,15 +73,20 @@ So if you report a conversion bug upstream, mention it:
 
 ## Reproducibility
 
-Pinned: the engine artifact (sha256, checked by the build), the base image the acceptance run was
-done against, and the app's own version (`version.txt`, plus the commit when the build supplies
-one — `/health` reports both).
+Pinned: the engine artifact (sha256, checked by the build), the model artifacts (fetched at
+build time from the checkpoint paths the installed surya release names — `s3://layout/2025_09_23`
+and friends — and baked into the image), the base image the acceptance run was done against,
+and the app's own version (`version.txt`, plus the commit when the build supplies one).
 
-Not pinned: the Python dependency set. `pip install /opt/marker-pdf` resolves marker's ranges at
-build time, so two builds months apart can differ in transitive packages. A
-`pip-compile --generate-hashes` constraints file in the Dockerfile would fix it and isn't done.
-Until then, the image digest is the authority on what a build contains, and the version and commit
-the service reports identify it.
+So an unattended run does no network I/O for its models: the weights are the ones the image
+was built with. The build proves this by loading every model under `--network=none`.
+
+Not pinned: the Python dependency set. `pip install /opt/marker-pdf` resolves marker's ranges
+at build time, so two builds months apart can differ in transitive packages — and therefore in
+which surya release, and therefore which checkpoint paths, get baked in. A
+`pip-compile --generate-hashes` constraints file in the Dockerfile would close that gap and
+isn't done. Until then, the image digest is the authority on what a build contains, and the
+version and commit the service reports identify it.
 
 ## Bumping the pin
 

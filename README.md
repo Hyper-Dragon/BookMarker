@@ -27,8 +27,8 @@ the markdown comes out wrong, that's marker's behaviour and it belongs upstream 
   loudly when the LLM isn't available instead of quietly doing something worse.
 - **Nothing kept.** Your PDF goes into the service's own scratch directory and is deleted when the
   job ends, whether it worked or not.
-- **A status page** at `/`. Free or busy, what's processing right now, what happened recently.
-- **A GPU.** The image is built on a CUDA base that publishes linux/amd64 only. There's no CPU
+- **A status page** at `/`. Free or busy, what's processing right now, what happened recently.- **Nothing fetched at run time.** The model weights are baked into the image, so an
+  unattended run doesn't hang on a download that half-succeeded.- **A GPU.** The image is built on a CUDA base that publishes linux/amd64 only. There's no CPU
   mode and no arm64 image.
 
 ## What this is, and what it is not
@@ -56,7 +56,7 @@ docker compose up -d
 docker build -t bookmarker:latest .
 BOOKMARKER_IMAGE=bookmarker:latest docker compose up -d
 
-# the first run downloads the marker models into named volumes
+# the model weights are in the image — nothing is downloaded at run time
 # status page:   http://localhost:8080/
 # health:        http://localhost:8080/health
 ```
@@ -133,10 +133,9 @@ All environment variables. Defaults shown.
 | `OPENAI_BASE_URL` / `OPENAI_MODEL` / `OPENAI_API_KEY` | *(empty)* | LLM backend for `llmonly` and `llmfallback` |
 | `LLM_TIMEOUT_SECONDS` / `LLM_MAX_RETRIES` / `LLM_RETRY_WAIT_SECONDS` | `600` / `4` / `5` | LLM client tuning |
 | `SCRATCH_ROOT` | `/tmp/bookmarker` | where per-job scratch lives |
-| `HF_HUB_OFFLINE` | `0` in compose, unset in the image | set `1` once the caches are warm |
 
 Compose passes `PORT`, `WORKERS`, `MAX_TIME_MS`, `MAX_UPLOAD_BYTES`, `BUSY_RETRY_AFTER_SECONDS`,
-`LOG_LEVEL`, `OPENAI_*`, `LLM_*` and `HF_HUB_OFFLINE` through. `DISABLE_MULTIPROCESSING`,
+`LOG_LEVEL`, `OPENAI_*` and `LLM_*` through. `DISABLE_MULTIPROCESSING`,
 `DISABLE_IMAGE_EXTRACTION`, `SCRATCH_ROOT`, `MARKER_BINARY` and `SHIM_DIR` are set in the image and
 aren't passed through — add them to `docker-compose.yml` if you need to change them. `PORT` is the
 port inside the container; compose maps `${BOOKMARKER_PORT}` onto it.
@@ -187,8 +186,13 @@ BookMarker/
   runs, not a benchmark, so check it against your documents. Set `BOOKMARKER_MEMORY` for the
   largest document you expect; compose defaults to `9g`. For very large books, split with
   `page_range` and join the markdown afterwards.
-- **Model caches** live in named volumes (`/root/.cache/huggingface`, `/root/.cache/datalab`).
-  Keep them between restarts and set `HF_HUB_OFFLINE=1` once they're warm.
+- **The image is about 10.7 GB uncompressed** (`docker images`), most of it the CUDA base and
+  the model weights. It's a one-time pull, and the weights only change when the engine pin does.
+- **Model artifacts are inside the image**, at `/root/.cache/datalab/models`. They're
+  downloaded at build time from the checkpoint paths the installed surya release names, and the
+  build then loads every model with the network off to prove the set is complete. There is no
+  cache volume to seed and no first run that can fail on a download. Newer weights mean a new
+  image.
 - **`shm_size: 2g`** isn't optional. Docker's 64 MB default can deadlock marker's worker, and
   changing it means recreating the container, not restarting it.
 - **Memory and swap are capped at the same value**, so the container can't borrow host swap. A

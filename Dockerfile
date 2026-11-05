@@ -80,6 +80,19 @@ RUN mkdir -p /opt/marker-pdf \
 # moves beyond that range and is installed as a second step.)
 RUN pip install --no-cache-dir --root-user-action=ignore "pdftext==0.7.1" "pypdfium2==5.10.1"
 
+# Bake the model artifacts into the image. Unattended runs must not depend on the network
+# for what the output looks like: the weights in the container are the weights this build
+# downloaded. See UPSTREAM.md.
+COPY docker/preload_models.py /usr/local/bin/preload_models.py
+RUN python /usr/local/bin/preload_models.py
+
+# Prove it, rather than assuming it: load every model with the network off. If an artifact
+# is missing this fails at build time instead of during a pipeline run.
+RUN --network=none python -c "\
+from marker.models import create_model_dict; \
+models = create_model_dict(device='cpu'); \
+print('offline model load ok:', len(models), 'models')"
+
 # LLM shim — selected via --llm_service marker_openai_service.OpenAICompatibleService
 COPY llm_shim /app/shim
 
@@ -108,7 +121,11 @@ ENV PORT=8080 \
     SHIM_DIR=/app/shim \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app/shim
+    PYTHONPATH=/app/shim \
+    # The artifacts are in the image, so anything still trying to reach the internet is a
+    # mistake. Fail loudly instead of downloading.
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1
 
 ARG BOOKMARKER_VERSION=dev
 LABEL org.opencontainers.image.title="BookMarker" \

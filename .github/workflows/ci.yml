@@ -60,14 +60,15 @@ jobs:
         id: sha
         run: echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
-      # The CUDA base is 3.4 GB compressed and the built image is ~7 GB, on a runner with
-      # ~14 GB free. Reclaim the toolchains this job does not use — plain shell rather than a
-      # third-party action, so there is one less thing to trust or to break.
+      # The CUDA base is 3.4 GB, the model artifacts add ~3.5 GB, and the finished image is
+      # ~10.7 GB on a runner with ~14 GB free. Reclaim everything this job doesn't use — plain
+      # shell rather than a third-party action, so there's one less thing to trust.
       - name: Free disk space
         run: |
           set -euo pipefail
           df -h / | tail -1
-          sudo rm -rf /usr/local/lib/android /usr/share/dotnet/sdk /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet/sdk /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache /usr/share/swift /usr/local/share/boost /opt/az
           sudo swapoff -a && sudo rm -f /swapfile
           docker image prune -af || true
           df -h / | tail -1

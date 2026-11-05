@@ -28,8 +28,12 @@ endorsed by or supported by Datalab. Datalab also offers marker under a separate
 commercial licence; this project is not a party to that agreement and cannot
 grant rights under it.
 
-Model weights are not distributed here. They are downloaded from Hugging Face on
-first run and carry the licences published by their respective authors.
+Model weights and other model artifacts
+  Bundled in the container image. They are part of the surya-ocr 0.17.1 distribution,
+  which is GNU GPL v3.0 or later, and are fetched from https://models.datalab.to at image
+  build time. Versioned checkpoint paths (for example s3://layout/2025_09_23) come from the
+  installed surya-ocr release, so the artifact set is fixed by the package version rather
+  than resolved at run time.
 
 Runtime dependencies installed by the container image (PyTorch, torchvision,
 pdftext, pypdfium2, poppler-utils, tesseract-ocr, the ASP.NET Core runtime and

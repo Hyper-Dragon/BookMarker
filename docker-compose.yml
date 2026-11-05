@@ -22,10 +22,6 @@ services:
       - LLM_MAX_RETRIES=${LLM_MAX_RETRIES:-4}
       - LLM_RETRY_WAIT_SECONDS=${LLM_RETRY_WAIT_SECONDS:-5}
       - HF_HUB_OFFLINE=${HF_HUB_OFFLINE:-0}
-    volumes:
-      # Persistent model caches — keep them warm across restarts (first run downloads models)
-      - bookmarker-hf:/root/.cache/huggingface
-      - bookmarker-datalab:/root/.cache/datalab
     shm_size: "2g"
     # memswap_limit == mem_limit on purpose: never let the container borrow host swap
     mem_limit: ${BOOKMARKER_MEMORY:-9g}
@@ -50,7 +46,3 @@ services:
       options:
         max-size: "10m"
         max-file: "2"
-
-volumes:
-  bookmarker-hf:
-  bookmarker-datalab:
