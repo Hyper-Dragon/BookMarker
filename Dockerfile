@@ -35,7 +35,11 @@ RUN dotnet publish src/BookMarker.Web/BookMarker.Web.csproj \
 # =========================
 # Stage 2: runtime — CUDA Python (marker) + ASP.NET Core (wrapper)
 # =========================
-FROM pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime AS final
+# Pinned by digest as well as tag. The tag alone is a promise the publisher can break; the
+# digest is the actual bytes, and it's what pins torch, torchvision and the rest of the base
+# image's 115 packages — which is why docker/requirements.lock only lists what we add.
+# Bump the tag and digest together, and re-lock: see "Bumping the pin" in UPSTREAM.md.
+FROM pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime@sha256:2b59b1b91885677814f78be1f8df48a25d5dc952eb6580eaecfefca510f9afd3 AS final
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -57,7 +61,9 @@ RUN curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
     && ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet \
     && rm /tmp/dotnet-install.sh
 
-# torchvision matched to the base image's torch 2.7.1+cu126 (0.22.1 PyPI wheels are cu126)
+# Already in the base image, so this is a no-op install and an assertion: if a future base
+# image moves off torch 2.7.1/cu126, this prints the mismatch here rather than surfacing as a
+# strange runtime failure halfway through a book.
 RUN pip install --no-cache-dir --root-user-action=ignore "torchvision==0.22.1" \
     && python -c "import torch, torchvision; print('torch', torch.__version__, '| cuda', torch.version.cuda, '| torchvision', torchvision.__version__)"
 
@@ -69,27 +75,31 @@ ARG MARKER_VERSION=1.10.2
 ADD --checksum=sha256:ce0fc839e11ad7519a576d254ca9d51a0f9454b9d7da02211f722b141317f9f1 \
     https://files.pythonhosted.org/packages/04/bc/a9e72fd015f562b1f86c9dbc201c80365e7baf43d5aa616ba1c89453537f/marker_pdf-1.10.2.tar.gz \
     /tmp/marker_pdf.tar.gz
+# --no-deps: the sdist's own dependency metadata is deliberately not consulted. Every
+# dependency comes from docker/requirements.lock below, so what gets installed is a decision
+# recorded in this repository rather than whatever marker's ranges resolve to today.
 RUN mkdir -p /opt/marker-pdf \
     && tar -xzf /tmp/marker_pdf.tar.gz --strip-components=1 -C /opt/marker-pdf \
     && rm /tmp/marker_pdf.tar.gz \
-    && pip install --no-cache-dir --root-user-action=ignore /opt/marker-pdf \
-    && marker --help > /dev/null && echo "marker CLI ok (marker-pdf ${MARKER_VERSION})"
+    && pip install --no-cache-dir --root-user-action=ignore --no-deps /opt/marker-pdf
 
-# Two pins, in two steps and in this order.
+# The dependency set, with a hash per artifact. --require-hashes means PyPI has to serve exactly
+# these files; a substituted or re-uploaded artifact fails the build instead of changing what
+# the container produces. It pins the two deliberate deviations too: surya-ocr 0.17.1, which
+# names the model checkpoint paths, and pdftext 0.7.1 with pypdfium2 5.10.1.
 #
-#   surya-ocr  names the checkpoint paths (s3://layout/2025_09_23 and friends). Pinning it means
-#              a build is told which artifacts to fetch by this file rather than by whatever pip
-#              resolves today, and gives docker/model-artifacts.lock something stable to describe.
-#   pdftext    deliberate dependency override: 0.7.1 fixes an infinite link-extraction hang on
-#              some PDFs. The upstream pyproject declares ~0.6.3, so this intentionally moves
-#              beyond that range. pypdfium2 5.10.1 goes with it.
+# --no-deps because the file already is the whole closure. Asking pip to resolve it would fail:
+# surya declares pypdfium2==4.30.0 and this image needs 5.10.1, a contradiction that can only be
+# expressed by installing a list rather than by satisfying metadata. The completeness check is
+# the two steps below — marker's CLI, then every model loaded with the network off — which
+# import the entire stack and fail loudly if something is missing.
 #
-# They cannot be one pip command: surya-ocr 0.17.1 depends on pypdfium2==4.30.0, so asking for
-# 5.10.1 in the same resolution is unsatisfiable and pip refuses with ResolutionImpossible. The
-# override works precisely because it is applied afterwards and replaces what the pins above
-# chose. Same layer, two invocations.
-RUN pip install --no-cache-dir --root-user-action=ignore "surya-ocr==0.17.1" \
-    && pip install --no-cache-dir --root-user-action=ignore "pdftext==0.7.1" "pypdfium2==5.10.1"
+# Packages the base image already provides — torch, torchvision, numpy — are absent from the
+# lock and pinned by the base digest instead.
+COPY docker/requirements.lock /usr/local/share/bookmarker/requirements.lock
+RUN pip install --no-cache-dir --root-user-action=ignore --require-hashes --no-deps \
+        -r /usr/local/share/bookmarker/requirements.lock \
+    && marker --help > /dev/null && echo "marker CLI ok (marker-pdf ${MARKER_VERSION})"
 
 # Bake the model artifacts into the image. Unattended runs must not depend on the network
 # for what the output looks like: the weights in the container are the weights this build

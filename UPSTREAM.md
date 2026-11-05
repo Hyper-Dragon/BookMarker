@@ -77,35 +77,40 @@ So if you report a conversion bug upstream, mention it:
 
 ## Reproducibility
 
-A conversion run must not depend on the network, and two builds of the same commit should
-produce the same output. Here's how far that goes.
-
-Pinned:
+A conversion run must not depend on the network, and two builds of the same commit should produce
+the same output. Everything below is pinned to that end.
 
 - **The engine artifact.** Its SHA-256 is in the `Dockerfile` as `ADD --checksum`.
-- **The surya release** that names the checkpoint paths (`surya-ocr==0.17.1`).
-- **The model artifacts themselves**, by content. `docker/model-artifacts.lock` records a
-  SHA-256 over the whole artifact tree and one over the render font. The build fetches the
-  weights, then checks them; a mismatch stops the build and names both hashes. So the host
-  cannot quietly change what a checkpoint path returns, and a bump that changes the weights
-  is a deliberate act with a diff.
+- **The base image**, by digest as well as tag (`pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime`
+  `@sha256:2b59b1b9…`). That digest pins torch, torchvision, numpy and the rest of the base's 115
+  packages — the tag alone is a promise the publisher can break, the digest is the bytes.
+- **Every Python package installed on top of it**, by version and by artifact hash, in
+  `docker/requirements.lock`. The build installs that file with `--require-hashes`, so PyPI has to
+  serve exactly those files; a re-uploaded or substituted artifact fails the build.
+- **The surya release**, `surya-ocr==0.17.1`, which names the model checkpoint paths. It's pinned
+  in the lock like everything else, so the paths come from a file in this repository rather than
+  from whatever pip resolved today.
+- **The model artifacts**, by content: `docker/model-artifacts.lock` holds a SHA-256 over the
+  artifact tree and one over the render font, and the build compares them after downloading.
 - **That they load offline.** The step after the download loads every model under
   `--network=none`.
 - **The app's version and commit**, from `version.txt` and the build's `SOURCE_REVISION`.
 
+Two deps are deliberately outside the ranges their packages declare, and both are recorded in the
+lock rather than applied at install time: `pdftext==0.7.1` (the link-extraction hang) and
+`pypdfium2==5.10.1` (surya 0.17.1 declares `==4.30.0`). Because they contradict metadata, the lock
+is installed with `--no-deps`: it already is the whole closure, and asking pip to re-resolve it
+would fail on exactly that contradiction. The completeness check is the build's own functional
+steps — `marker --help`, then all five models loaded with the network off — which import the
+entire stack.
+
 The weights aren't stored in this repository. The largest artifact file is 1.35 GB and GitHub
-refuses anything over 100 MiB; the set is 3.3 GB, which is past the free Git LFS allowance
-and would be downloaded by everyone who clones. Recording their identity instead buys the
-same guarantee for a few lines of text.
+refuses anything over 100 MiB; the set is 3.3 GB, past the free Git LFS allowance and a download
+everyone who clones would pay for. Recording their identity buys the same guarantee for a few
+lines of text.
 
-Still open: the rest of the Python dependency set. `pip install /opt/marker-pdf` resolves
-marker's remaining ranges at build time, so two builds months apart can differ in transitive
-packages, and that can change behaviour even though the weights are now fixed. A
-`pip-compile --generate-hashes` constraints file would close it. The base image is pinned to a
-tag rather than a digest for the same reason — convenient, not immutable.
-
-So: the artifacts are pinned, the machinery around them mostly is, and the image digest remains
-the authority on exactly what a given build contained.
+The one thing not pinned is your graphics driver, which no image can control. If a conversion
+differs between two machines with the same image digest, that's where to look first.
 
 ## Bumping the pin
 
@@ -115,14 +120,28 @@ the authority on exactly what a given build contained.
    `ADD --checksum` and the `MARKER_VERSION` argument.
 3. Check whether the `pdftext` override is still needed. If it isn't, drop it. Don't keep it out of
    habit.
-4. If the new release names different surya checkpoints, update the `surya-ocr` pin in the
-   `Dockerfile` to match.
-5. Build. If the artifact check fails, decide whether the new weights are intended: if they are,
+4. If the new release names different surya checkpoints, update the `surya-ocr` pin in
+   `docker/requirements.lock` to match.
+5. Regenerate the lock. The versions in it are the ones the previous image actually contained, so
+   after a bump they have to be re-derived rather than guessed:
+
+   ```bash
+   # build the image as it now stands, then diff its packages against the base image's
+   docker build -t bookmarker:relock .
+   docker run --rm --entrypoint pip <base-ref> freeze | sort > /tmp/base.txt
+   docker run --rm --entrypoint pip bookmarker:relock freeze | sort > /tmp/final.txt
+   ```
+
+   Anything in `final.txt` that is missing from `base.txt`, or present at a different version,
+   belongs in the lock. Hash each one with `pip download --no-deps "<name>==<version>"` followed
+   by `sha256sum`, and read the diff before committing — it should be the change you intended, not
+   forty packages moving because a range drifted.
+6. Build. If the artifact check fails, decide whether the new weights are intended: if they are,
    regenerate `docker/model-artifacts.lock` with
    `docker run --rm --network none --entrypoint python <image> /usr/local/bin/preload_models.py --print`
    and commit the new hashes in the same change as the version bump, so the diff shows what
    changed.
-6. `./build-and-run.sh`, then `./scripts/acceptance.sh`. The acceptance script compares the
+7. `./build-and-run.sh`, then `./scripts/acceptance.sh`. The acceptance script compares the
    service's output against a direct `marker` run inside the container, which is the real
    regression test for a bump.
-7. Put the engine version in `CHANGELOG.md` for that release.
+8. Put the engine version in `CHANGELOG.md` for that release.

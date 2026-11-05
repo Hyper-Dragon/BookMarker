@@ -9,6 +9,20 @@ not released until it has a section here.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-05
+
+### Changed
+
+- **The Python dependency set is locked, with a hash per artifact.** `docker/requirements.lock`
+  lists every package the image installs on top of its base image, and the build installs it with
+  `--require-hashes`, so PyPI has to serve exactly those files. Two builds of the same commit no
+  longer differ because a range resolved differently that week. It also pins the two deliberate
+  deviations: `surya-ocr==0.17.1` and the `pdftext==0.7.1` / `pypdfium2==5.10.1` override.
+- **The base image is pinned by digest**, not just by tag: torch, torchvision, numpy and the rest
+  of its 115 packages now come from a digest that can't move underneath a rebuild.
+- `pillow` is pinned at `10.4.0` rather than the base image's `11.0.0`, because surya caps it
+  below 11. That downgrade used to be an accident of resolution order; it's now recorded.
+
 ## [0.1.2] - 2026-11-05
 
 ### Changed
