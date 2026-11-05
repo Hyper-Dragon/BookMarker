@@ -75,15 +75,17 @@ RUN mkdir -p /opt/marker-pdf \
     && pip install --no-cache-dir --root-user-action=ignore /opt/marker-pdf \
     && marker --help > /dev/null && echo "marker CLI ok (marker-pdf ${MARKER_VERSION})"
 
-# Deliberate dependency override: fixes an infinite link-extraction hang on some PDFs.
-# (The upstream pyproject declares pdftext ~0.6.3; 0.7.1 is the fix, so it intentionally
-# moves beyond that range and is installed as a second step.)
-RUN pip install --no-cache-dir --root-user-action=ignore "pdftext==0.7.1" "pypdfium2==5.10.1"
-
-# surya names the checkpoint paths (s3://layout/2025_09_23 and friends). Pin the release so a
-# build is told which artifacts to fetch by this file rather than by whatever pip resolves
-# today, and so docker/model-artifacts.lock has something stable to describe.
-RUN pip install --no-cache-dir --root-user-action=ignore "surya-ocr==0.17.1"
+# Two pins, installed together so pip resolves them in one pass and the second can't quietly
+# undo the first:
+#
+#   surya-ocr  names the checkpoint paths (s3://layout/2025_09_23 and friends). Pinning it means
+#              a build is told which artifacts to fetch by this file rather than by whatever pip
+#              resolves today, and gives docker/model-artifacts.lock something stable to describe.
+#   pdftext    deliberate dependency override: 0.7.1 fixes an infinite link-extraction hang on
+#              some PDFs. The upstream pyproject declares ~0.6.3, so this intentionally moves
+#              beyond that range. pypdfium2 is pinned with it.
+RUN pip install --no-cache-dir --root-user-action=ignore \
+    "surya-ocr==0.17.1" "pdftext==0.7.1" "pypdfium2==5.10.1"
 
 # Bake the model artifacts into the image. Unattended runs must not depend on the network
 # for what the output looks like: the weights in the container are the weights this build
