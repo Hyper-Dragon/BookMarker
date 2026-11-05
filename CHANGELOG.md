@@ -18,6 +18,12 @@ not released until it has a section here.
   `/root/.cache/datalab/models`, so an unattended run does no network I/O for its models and
   two runs of the same image cannot drift. The build fails if any artifact is missing: after
   preloading, every model is loaded again with the network off (`RUN --network=none`).
+- **The artifacts are checked against recorded hashes.** `docker/model-artifacts.lock` holds a
+  SHA-256 over the whole artifact tree and one over the render font. The build compares them
+  and stops with both values printed if they differ, so the files behind a checkpoint path
+  can't change underneath a rebuild without someone deciding to accept it. `surya-ocr` is
+  pinned to `0.17.1` so the checkpoint paths come from the `Dockerfile` rather than from
+  whatever pip resolves.
 - The cache volumes are gone from the example compose file. Mounting an empty volume over
   the cache path would have hidden the baked artifacts.
 - `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` are set in the image, so anything that still

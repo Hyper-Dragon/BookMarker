@@ -1,0 +1,20 @@
+# Identity of the model artifacts baked into the image.
+#
+# The weights themselves are not in this repository: the largest file is 1.35 GB and GitHub
+# blocks anything over 100 MiB. They're fetched at build time from the checkpoint paths the
+# pinned surya release names, and these hashes are checked immediately afterwards, so a
+# build either produces the same artifacts as the release it claims to be or fails.
+#
+#   artifacts — sha256 over every file under /root/.cache/datalab/models
+#               (relative path, then contents, in path order)
+#   font      — sha256 of the render font marker downloads alongside them
+#
+# Regenerate deliberately after changing the engine pin or the surya pin:
+#
+#   docker run --rm --network none --entrypoint python <image> \
+#       /usr/local/bin/preload_models.py --print
+#
+# then copy the two values here. The build checks them; it never updates them.
+
+artifacts = 5cee5977e9e3698a4de299695074df52815ae54592524da72a5e749d420d4023
+font = 882afbab965608c2d2bc627fd8016b962aa5a6be2d358f9de24a7b5967c5632e

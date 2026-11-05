@@ -73,20 +73,35 @@ So if you report a conversion bug upstream, mention it:
 
 ## Reproducibility
 
-Pinned: the engine artifact (sha256, checked by the build), the model artifacts (fetched at
-build time from the checkpoint paths the installed surya release names — `s3://layout/2025_09_23`
-and friends — and baked into the image), the base image the acceptance run was done against,
-and the app's own version (`version.txt`, plus the commit when the build supplies one).
+A conversion run must not depend on the network, and two builds of the same commit should
+produce the same output. Here's how far that goes.
 
-So an unattended run does no network I/O for its models: the weights are the ones the image
-was built with. The build proves this by loading every model under `--network=none`.
+Pinned:
 
-Not pinned: the Python dependency set. `pip install /opt/marker-pdf` resolves marker's ranges
-at build time, so two builds months apart can differ in transitive packages — and therefore in
-which surya release, and therefore which checkpoint paths, get baked in. A
-`pip-compile --generate-hashes` constraints file in the Dockerfile would close that gap and
-isn't done. Until then, the image digest is the authority on what a build contains, and the
-version and commit the service reports identify it.
+- **The engine artifact.** Its SHA-256 is in the `Dockerfile` as `ADD --checksum`.
+- **The surya release** that names the checkpoint paths (`surya-ocr==0.17.1`).
+- **The model artifacts themselves**, by content. `docker/model-artifacts.lock` records a
+  SHA-256 over the whole artifact tree and one over the render font. The build fetches the
+  weights, then checks them; a mismatch stops the build and names both hashes. So the host
+  cannot quietly change what a checkpoint path returns, and a bump that changes the weights
+  is a deliberate act with a diff.
+- **That they load offline.** The step after the download loads every model under
+  `--network=none`.
+- **The app's version and commit**, from `version.txt` and the build's `SOURCE_REVISION`.
+
+The weights aren't stored in this repository. The largest artifact file is 1.35 GB and GitHub
+refuses anything over 100 MiB; the set is 3.3 GB, which is past the free Git LFS allowance
+and would be downloaded by everyone who clones. Recording their identity instead buys the
+same guarantee for a few lines of text.
+
+Still open: the rest of the Python dependency set. `pip install /opt/marker-pdf` resolves
+marker's remaining ranges at build time, so two builds months apart can differ in transitive
+packages, and that can change behaviour even though the weights are now fixed. A
+`pip-compile --generate-hashes` constraints file would close it. The base image is pinned to a
+tag rather than a digest for the same reason — convenient, not immutable.
+
+So: the artifacts are pinned, the machinery around them mostly is, and the image digest remains
+the authority on exactly what a given build contained.
 
 ## Bumping the pin
 
@@ -96,7 +111,14 @@ version and commit the service reports identify it.
    `ADD --checksum` and the `MARKER_VERSION` argument.
 3. Check whether the `pdftext` override is still needed. If it isn't, drop it. Don't keep it out of
    habit.
-4. `./build-and-run.sh`, then `./scripts/acceptance.sh`. The acceptance script compares the
+4. If the new release names different surya checkpoints, update the `surya-ocr` pin in the
+   `Dockerfile` to match.
+5. Build. If the artifact check fails, decide whether the new weights are intended: if they are,
+   regenerate `docker/model-artifacts.lock` with
+   `docker run --rm --network none --entrypoint python <image> /usr/local/bin/preload_models.py --print`
+   and commit the new hashes in the same change as the version bump, so the diff shows what
+   changed.
+6. `./build-and-run.sh`, then `./scripts/acceptance.sh`. The acceptance script compares the
    service's output against a direct `marker` run inside the container, which is the real
    regression test for a bump.
-5. Put the engine version in `CHANGELOG.md` for that release.
+7. Put the engine version in `CHANGELOG.md` for that release.
