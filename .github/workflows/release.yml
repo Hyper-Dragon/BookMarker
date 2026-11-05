@@ -82,7 +82,7 @@ jobs:
       # entry could not be produced without a CPU variant; that is a separate `-cpu` image,
       # not a matrix line. When it arrives, both halves go on native runners — never QEMU.
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
